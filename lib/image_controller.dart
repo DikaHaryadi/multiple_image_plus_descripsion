@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import 'package:chewie/chewie.dart';
 import 'package:multipleimage/status_wa.dart';
 import 'package:video_player/video_player.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 class ImageController extends GetxController {
   static ImageController get instance => Get.find();
@@ -13,7 +15,6 @@ class ImageController extends GetxController {
   final description = TextEditingController();
   RxList<MediaData> mediaData = <MediaData>[].obs;
   final Rx<MediaData?> selectedMediaData = Rx<MediaData?>(null);
-  // late VideoPlayerController _videoPlayerController;
 
   Future<void> selectMedia() async {
     try {
@@ -23,23 +24,43 @@ class ImageController extends GetxController {
       );
 
       if (result != null) {
+        List<MediaData> selectedMedia = [];
         for (var file in result.files) {
           if (file.path != null) {
             MediaType type =
                 file.extension == 'mp4' ? MediaType.video : MediaType.image;
-            print(type.toString());
-            String? description = await Get.to(
-              () => StatusWaScreen(
-                finalPath: file.path!,
-                type: type,
-              ),
-            );
+            String? thumbnailPath;
+            if (type == MediaType.video) {
+              thumbnailPath = await VideoThumbnail.thumbnailFile(
+                video: file.path!,
+                thumbnailPath: (await getTemporaryDirectory()).path,
+                imageFormat: ImageFormat.PNG,
+                maxHeight: 50,
+                quality: 75,
+              );
+            }
 
-            if (description != null && description.isNotEmpty) {
-              mediaData.add(MediaData(file.path!, description, type));
-              update(); // Update the UI
+            selectedMedia.add(
+                MediaData(file.path!, '', type, thumbnailPath: thumbnailPath));
+          }
+        }
+
+        if (selectedMedia.isNotEmpty) {
+          mediaData.addAll(selectedMedia);
+          update();
+
+          // Set default selected media to index 0
+          selectedMediaData.value = mediaData[0];
+
+          await Get.to(() => const StatusWaScreen());
+
+          // After returning from StatusWaScreen, handle description updates
+          for (var media in selectedMedia) {
+            if (media.description.isNotEmpty) {
+              mediaData.add(media);
             }
           }
+          update();
         }
       }
     } catch (e) {
@@ -48,22 +69,19 @@ class ImageController extends GetxController {
   }
 
   Future<void> editDescription(BuildContext context, int index) async {
+    selectedMediaData.value = mediaData[index];
     description.text = mediaData[index].description;
-    String? newDescription = await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => StatusWaScreen(
-          finalPath: mediaData[index].path,
-          deskripsi: mediaData[index].description,
-          type: mediaData[index].type,
-        ),
-      ),
-    );
 
-    if (newDescription != null && newDescription.isEmpty) {
-      newDescription = 'Enter Description'; // Default description if left empty
+    await Get.to(() => const StatusWaScreen());
+
+    // After returning from StatusWaScreen, handle description updates
+    final updatedMedia = selectedMediaData.value;
+    if (updatedMedia != null && updatedMedia.description.isEmpty) {
+      updatedMedia.description =
+          'Enter Description'; // Default description if left empty
     }
 
-    mediaData[index].description = newDescription ?? 'Enter Description';
+    mediaData[index] = updatedMedia ?? mediaData[index];
     update(); // Update the UI
   }
 
@@ -100,8 +118,9 @@ class MediaData {
   final String path;
   String description;
   final MediaType type;
+  final String? thumbnailPath;
 
-  MediaData(this.path, this.description, this.type);
+  MediaData(this.path, this.description, this.type, {this.thumbnailPath});
 }
 
 enum MediaType { image, video }

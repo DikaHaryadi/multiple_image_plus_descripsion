@@ -49,7 +49,10 @@ class Profile extends StatelessWidget {
               ),
               SizedBox(width: 10),
               ElevatedButton(
-                onPressed: controller.clearImages,
+                onPressed: () {
+                  controller.clearImages();
+                  print('clear image berhasil');
+                },
                 child: Text(
                   "Clear",
                   style: TextStyle(color: Colors.black),
@@ -74,69 +77,69 @@ class Profile extends StatelessWidget {
           ),
           const Text('Ini Text'),
           Expanded(
-            child: ListView.separated(
-              itemCount: controller.mediaData.length,
-              itemBuilder: (context, index) {
-                MediaData media = controller.mediaData[index];
-                return Stack(children: [
-                  Column(
-                    children: [
-                      media.type == MediaType.image
-                          ? Image.file(
-                              File(media.path),
-                              fit: BoxFit.cover,
-                            )
-                          : FutureBuilder<ChewieController>(
-                              future: controller
-                                  .initializeChewieController(media.path),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                        ConnectionState.done &&
-                                    snapshot.hasData) {
-                                  return AspectRatio(
-                                    aspectRatio: 18 / 9,
-                                    child: Chewie(
-                                      controller: snapshot.data!,
-                                    ),
-                                  );
-                                } else {
-                                  return Container(
-                                    height:
-                                        200, // Ensure the container has the same height to keep the UI consistent
-                                    child: Center(
-                                        child: CircularProgressIndicator()),
-                                  );
-                                }
-                              },
+            child: Obx(() => ListView.separated(
+                  itemCount: controller.mediaData.length,
+                  itemBuilder: (context, index) {
+                    MediaData media = controller.mediaData[index];
+                    return Stack(children: [
+                      Column(
+                        children: [
+                          media.type == MediaType.image
+                              ? Image.file(
+                                  File(media.path),
+                                  fit: BoxFit.cover,
+                                )
+                              : FutureBuilder<ChewieController>(
+                                  future: controller
+                                      .initializeChewieController(media.path),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                            ConnectionState.done &&
+                                        snapshot.hasData) {
+                                      return AspectRatio(
+                                        aspectRatio: 18 / 9,
+                                        child: Chewie(
+                                          controller: snapshot.data!,
+                                        ),
+                                      );
+                                    } else {
+                                      return Container(
+                                        height:
+                                            200, // Ensure the container has the same height to keep the UI consistent
+                                        child: Center(
+                                            child: CircularProgressIndicator()),
+                                      );
+                                    }
+                                  },
+                                ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(child: Text(media.description)),
+                                IconButton(
+                                  icon: Icon(Icons.edit, color: Colors.blue),
+                                  onPressed: () {},
+                                ),
+                              ],
                             ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(child: Text(media.description)),
-                            IconButton(
-                              icon: Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () {},
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: IconButton(
-                        icon: Icon(Icons.delete_forever, color: Colors.red),
-                        onPressed: () {}),
-                  ),
-                ]);
-              },
-              separatorBuilder: (BuildContext context, int index) =>
-                  const Divider(),
-            ),
-          ),
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: IconButton(
+                            icon: Icon(Icons.delete_forever, color: Colors.red),
+                            onPressed: () {}),
+                      ),
+                    ]);
+                  },
+                  separatorBuilder: (BuildContext context, int index) =>
+                      const Divider(),
+                )),
+          )
         ],
       ),
     );
