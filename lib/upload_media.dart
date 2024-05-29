@@ -4,9 +4,10 @@ import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:multipleimage/image_controller.dart';
+import 'package:video_trimmer/video_trimmer.dart';
 
-class Profile extends StatelessWidget {
-  const Profile({super.key});
+class UploadMedia extends StatelessWidget {
+  const UploadMedia({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +76,6 @@ class Profile extends StatelessWidget {
               elevation: 0,
             ),
           ),
-          const Text('Ini Text'),
           Expanded(
             child: Obx(() => ListView.separated(
                   itemCount: controller.mediaData.length,
@@ -89,28 +89,60 @@ class Profile extends StatelessWidget {
                                   File(media.path),
                                   fit: BoxFit.cover,
                                 )
-                              : FutureBuilder<ChewieController>(
-                                  future: controller
-                                      .initializeChewieController(media.path),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                            ConnectionState.done &&
-                                        snapshot.hasData) {
-                                      return AspectRatio(
-                                        aspectRatio: 18 / 9,
-                                        child: Chewie(
-                                          controller: snapshot.data!,
-                                        ),
-                                      );
-                                    } else {
-                                      return Container(
-                                        height:
-                                            200, // Ensure the container has the same height to keep the UI consistent
-                                        child: Center(
-                                            child: CircularProgressIndicator()),
-                                      );
-                                    }
-                                  },
+                              : Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: VideoViewer(
+                                          trimmer: controller.trimmer),
+                                    ),
+                                    Positioned(
+                                      top: 0,
+                                      left: 0,
+                                      right: 0,
+                                      child: Column(
+                                        children: [
+                                          Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: IconButton(
+                                              onPressed: () {
+                                                controller.clearImages();
+                                                Get.back();
+                                              },
+                                              icon: const Icon(
+                                                Icons.close,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Align(
+                                      alignment: Alignment.center,
+                                      child: TextButton(
+                                        child: Obx(() {
+                                          return controller.isPlaying.value
+                                              ? Icon(Icons.pause,
+                                                  size: 80.0,
+                                                  color: Colors.black)
+                                              : Icon(Icons.play_arrow,
+                                                  size: 80.0,
+                                                  color: Colors.black);
+                                        }),
+                                        onPressed: () async {
+                                          final playbackState = await controller
+                                              .trimmer
+                                              .videoPlaybackControl(
+                                            startValue:
+                                                controller.startValue.value,
+                                            endValue: controller.endValue.value,
+                                          );
+                                          controller.isPlaying.value =
+                                              playbackState;
+                                        },
+                                      ),
+                                    ),
+                                  ],
                                 ),
                           Padding(
                             padding: const EdgeInsets.all(8.0),

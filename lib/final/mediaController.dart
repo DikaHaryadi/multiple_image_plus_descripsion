@@ -1,22 +1,24 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
-import 'package:multipleimage/upload_process.dart';
+import 'package:multipleimage/final/upload_process.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:chewie/chewie.dart';
-import 'package:video_player/video_player.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:image_editor_plus/image_editor_plus.dart';
 import 'package:video_trimmer/video_trimmer.dart';
+import 'package:path/path.dart' as path;
 
 class ImageController extends GetxController {
+  static ImageController get instance => Get.find();
+
   final pageController = PageController();
   final description = TextEditingController();
   RxList<MediaData> mediaData = <MediaData>[].obs;
   final Rx<MediaData?> selectedMediaData = Rx<MediaData?>(null);
 
-  // ini buat video
   final Trimmer trimmer = Trimmer();
   var startValue = 0.0.obs;
   var endValue = 0.0.obs;
@@ -59,7 +61,7 @@ class ImageController extends GetxController {
           // Set default selected media to index 0
           selectedMediaData.value = mediaData[0];
 
-          await Get.to(() => const UploadProcess());
+          await Get.to(() => UploadProcess());
 
           // After returning from StatusWaScreen, handle description updates
           for (var media in selectedMedia) {
@@ -75,22 +77,22 @@ class ImageController extends GetxController {
     }
   }
 
-  // Future<void> editDescription(BuildContext context, int index) async {
-  //   selectedMediaData.value = mediaData[index];
-  //   description.text = mediaData[index].description;
+  Future<void> editDescription(BuildContext context, int index) async {
+    selectedMediaData.value = mediaData[index];
+    description.text = mediaData[index].description;
 
-  //   await Get.to(() => const UploadProcess());
+    await Get.to(() => const UploadProcess());
 
-  //   // After returning from StatusWaScreen, handle description updates
-  //   final updatedMedia = selectedMediaData.value;
-  //   if (updatedMedia != null && updatedMedia.description.isEmpty) {
-  //     updatedMedia.description =
-  //         'Enter Description'; // Default description if left empty
-  //   }
+    // After returning from StatusWaScreen, handle description updates
+    final updatedMedia = selectedMediaData.value;
+    if (updatedMedia != null && updatedMedia.description.isEmpty) {
+      updatedMedia.description =
+          'Enter Description'; // Default description if left empty
+    }
 
-  //   mediaData[index] = updatedMedia ?? mediaData[index];
-  //   update(); // Update the UI
-  // }
+    mediaData[index] = updatedMedia ?? mediaData[index];
+    update(); // Update the UI
+  }
 
   void removeImage(int index) {
     mediaData.removeAt(index);
@@ -133,20 +135,10 @@ class ImageController extends GetxController {
         print('Error editing image: $e');
       }
     }
-    // } else if (media.type == MediaType.video) {
-    //   final editedVideo =
-    //       await Get.toNamed('/video-trim', arguments: File(media.path));
-    //   if (editedVideo != null) {
-    //     mediaData[index] =
-    //         MediaData(editedVideo.path, media.description, MediaType.video);
-    //     selectedMediaData.value = mediaData[index];
-    //     update();
-    //   }
-    // }
+
     update();
   }
 
-  // save video
   saveVideo() async {
     progressVisibility.value = true;
     String? result;
@@ -166,19 +158,15 @@ class ImageController extends GetxController {
     print('Images would be uploaded here');
   }
 
-  // Future<ChewieController> initializeChewieController(String videoPath) async {
-  //   VideoPlayerController videoController =
-  //       VideoPlayerController.file(File(videoPath));
-  //   await videoController.initialize();
-  //   ChewieController chewieController = ChewieController(
-  //     videoPlayerController: videoController,
-
-  //     autoPlay: false, // Auto-play should be off for previews
-  //     looping: false, // Turn off looping for previews
-  //     showControls: true, // Show controls
-  //   );
-  //   return chewieController;
-  // }
+  Future<String> saveEditedImage(
+      Uint8List imageBytes, String originalPath) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final fileName = path.basename(originalPath);
+    final editedImagePath = '${directory.path}/edited_$fileName';
+    final file = File(editedImagePath);
+    await file.writeAsBytes(imageBytes);
+    return editedImagePath;
+  }
 }
 
 class MediaData {
